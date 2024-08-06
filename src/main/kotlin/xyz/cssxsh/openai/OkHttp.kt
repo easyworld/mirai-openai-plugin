@@ -12,26 +12,29 @@ import java.security.cert.*
 import javax.net.ssl.*
 
 internal fun OkHttpClient.Builder.apply(config: OpenAiClientConfig) {
-    dns(object : Dns {
-        private val doh = DnsOverHttps.Builder()
-            .client(OkHttpClient())
-            .url(config.doh.toHttpUrl())
-            .includeIPv6(config.ipv6)
-            .build()
+    if (config.doh.isNotBlank()) {
+        dns(object : Dns {
+            private val doh = DnsOverHttps.Builder()
+                .client(OkHttpClient())
+                .url(config.doh.toHttpUrl())
+                .includeIPv6(config.ipv6)
+                .build()
 
-        override fun lookup(hostname: String): List<InetAddress> {
-            if (hostname == "api.openai.com" && System.getProperty("xyz.cssxsh.openai.cname", "true").toBoolean()) {
-                return lookup("msly.api.openai.com")
+            override fun lookup(hostname: String): List<InetAddress> {
+                if (hostname == "api.openai.com" && System.getProperty("xyz.cssxsh.openai.cname", "true").toBoolean()) {
+                    return lookup("msly.api.openai.com")
+                }
+                return try {
+                    doh.lookup(hostname)
+                } catch (_: UnknownHostException) {
+                    Dns.SYSTEM.lookup(hostname)
+                } catch (cause: Exception) {
+                    throw UnknownHostException(hostname).initCause(cause)
+                }
             }
-            return try {
-                doh.lookup(hostname)
-            } catch (_: UnknownHostException) {
-                Dns.SYSTEM.lookup(hostname)
-            } catch (cause: Exception) {
-                throw UnknownHostException(hostname).initCause(cause)
-            }
-        }
-    })
+        })
+    }
+
     proxy(config.proxy.ifEmpty {
         if (System.getProperty("xyz.cssxsh.openai.cname", "true").toBoolean()) {
             sslSocketFactory(FakeSSLSocketFactory, FakeX509TrustManager)

@@ -12,21 +12,21 @@ import io.ktor.client.statement.*
 import io.ktor.serialization.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.utils.io.charsets.*
-import kotlinx.serialization.json.*
-import xyz.cssxsh.openai.chat.*
-import xyz.cssxsh.openai.completion.*
-import xyz.cssxsh.openai.edit.*
-import xyz.cssxsh.openai.embedding.*
-import xyz.cssxsh.openai.file.*
-import xyz.cssxsh.openai.finetune.*
-import xyz.cssxsh.openai.image.*
-import xyz.cssxsh.openai.model.*
-import xyz.cssxsh.openai.moderation.*
+import kotlinx.serialization.json.Json
+import xyz.cssxsh.openai.chat.ChatController
+import xyz.cssxsh.openai.completion.CompletionController
+import xyz.cssxsh.openai.edit.EditController
+import xyz.cssxsh.openai.embedding.EmbeddingController
+import xyz.cssxsh.openai.file.FileController
+import xyz.cssxsh.openai.finetune.FineTuneController
+import xyz.cssxsh.openai.image.ImageController
+import xyz.cssxsh.openai.model.ModelController
+import xyz.cssxsh.openai.moderation.ModerationController
 
 public open class OpenAiClient(internal val config: OpenAiClientConfig) {
     public open val http: HttpClient = HttpClient(OkHttp) {
         install(ContentNegotiation) {
-            json(json = Json)
+            json(json = Json { ignoreUnknownKeys = true })
         }
         install(HttpTimeout) {
             socketTimeoutMillis = config.timeout
@@ -68,9 +68,11 @@ public open class OpenAiClient(internal val config: OpenAiClientConfig) {
                         in 400..499 -> {
                             ClientRequestException(response, exceptionResponseText)
                         }
+
                         in 500..599 -> {
                             ServerResponseException(response, exceptionResponseText)
                         }
+
                         else -> ResponseException(response, exceptionResponseText)
                     }
                 }
